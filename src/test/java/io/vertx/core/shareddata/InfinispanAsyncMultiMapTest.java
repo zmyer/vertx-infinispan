@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc.
+ * Copyright 2018 Red Hat, Inc.
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -14,19 +14,18 @@
  * under the License.
  */
 
-package io.vertx.ext.cluster.infinispan.test;
+package io.vertx.core.shareddata;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import io.vertx.Lifecycle;
+import io.vertx.LoggingTestWatcher;
+import io.vertx.core.*;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
-import io.vertx.test.core.FaultToleranceTest;
+import org.junit.Rule;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -35,7 +34,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Thomas Segismont
  */
-public class InfinispanFaultToleranceTest extends FaultToleranceTest {
+public class InfinispanAsyncMultiMapTest extends AsyncMultiMapTest {
+
+  private static final Logger log = LoggerFactory.getLogger(InfinispanAsyncMultiMapTest.class);
+
+  @Rule
+  public LoggingTestWatcher watchman = new LoggingTestWatcher();
 
   @Override
   public void setUp() throws Exception {
@@ -70,15 +74,7 @@ public class InfinispanFaultToleranceTest extends FaultToleranceTest {
   }
 
   @Override
-  protected List<String> getExternalNodeSystemProperties() {
-    return Arrays.asList(
-      "-Djava.net.preferIPv4Stack=true",
-      "-Djgroups.join_timeout=1000",
-      "-Dvertx.infinispan.config=infinispan.xml",
-      "-Dvertx.jgroups.config=jgroups.xml",
-      "-Dvertx.infinispan.test.auth.token=" + System.getProperty("vertx.infinispan.test.auth.token"),
-      "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory",
-      "-Djgroups.logging.log_factory_class=io.vertx.ext.cluster.infinispan.test.JGroupsLogFactory"
-    );
+  protected void closeClustered(List<Vertx> clustered) throws Exception {
+    Lifecycle.closeClustered(clustered);
   }
 }

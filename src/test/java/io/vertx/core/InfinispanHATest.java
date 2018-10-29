@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc.
+ * Copyright 2018 Red Hat, Inc.
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -14,22 +14,15 @@
  * under the License.
  */
 
-package io.vertx.ext.cluster.infinispan.test;
+package io.vertx.core;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.Lifecycle;
+import io.vertx.LoggingTestWatcher;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
-import io.vertx.test.core.HATest;
-import org.infinispan.health.Health;
-import org.infinispan.health.HealthStatus;
-import org.infinispan.manager.EmbeddedCacheManager;
+import org.junit.Rule;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -37,14 +30,15 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.*;
-
 /**
  * @author Thomas Segismont
  */
 public class InfinispanHATest extends HATest {
 
   private static final Logger log = LoggerFactory.getLogger(InfinispanHATest.class);
+
+  @Rule
+  public LoggingTestWatcher watchman = new LoggingTestWatcher();
 
   @Override
   public void setUp() throws Exception {
@@ -80,27 +74,6 @@ public class InfinispanHATest extends HATest {
 
   @Override
   protected void closeClustered(List<Vertx> clustered) throws Exception {
-    for (Vertx clusteredVertx : clustered) {
-      VertxInternal vertxInternal = (VertxInternal) clusteredVertx;
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) vertxInternal.getClusterManager();
-      EmbeddedCacheManager cacheManager = (EmbeddedCacheManager) clusterManager.getCacheContainer();
-      Health health = cacheManager.getHealth();
-      long start = System.currentTimeMillis();
-      try {
-        while (health.getClusterHealth().getHealthStatus() != HealthStatus.HEALTHY
-          && System.currentTimeMillis() - start < MILLISECONDS.convert(2, MINUTES)) {
-          MILLISECONDS.sleep(100);
-        }
-      } catch (Exception ignore) {
-      }
-      CountDownLatch latch = new CountDownLatch(1);
-      vertxInternal.close(ar -> {
-        if (ar.failed()) {
-          log.error("Failed to shutdown vert.x", ar.cause());
-        }
-        latch.countDown();
-      });
-      latch.await(2, TimeUnit.MINUTES);
-    }
+    Lifecycle.closeClustered(clustered);
   }
 }

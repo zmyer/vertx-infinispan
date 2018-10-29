@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc.
+ * Copyright 2018 Red Hat, Inc.
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -14,26 +14,18 @@
  * under the License.
  */
 
-package io.vertx.ext.cluster.infinispan.test;
+package io.vertx;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
-import io.vertx.test.core.ClusteredSharedCounterTest;
 import org.infinispan.health.Health;
 import org.infinispan.health.HealthStatus;
 import org.infinispan.manager.EmbeddedCacheManager;
 
-import java.math.BigInteger;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -42,49 +34,20 @@ import static java.util.concurrent.TimeUnit.*;
 /**
  * @author Thomas Segismont
  */
-public class InfinispanClusteredSharedCounterTest extends ClusteredSharedCounterTest {
+public class Lifecycle {
 
-  private static final Logger log = LoggerFactory.getLogger(InfinispanClusteredSharedCounterTest.class);
+  private static final Logger log = LoggerFactory.getLogger(Lifecycle.class);
 
-  @Override
-  public void setUp() throws Exception {
-    Random random = new Random();
-    System.setProperty("vertx.infinispan.test.auth.token", new BigInteger(128, random).toString(32));
-    super.setUp();
-  }
+  public static void closeClustered(List<Vertx> clustered) throws Exception {
+    for (Vertx vertx : clustered) {
+      VertxInternal vertxInternal = (VertxInternal) vertx;
 
-  @Override
-  protected void clusteredVertx(VertxOptions options, Handler<AsyncResult<Vertx>> ar) {
-    CountDownLatch latch = new CountDownLatch(1);
-    Future<Vertx> future = Future.future();
-    future.setHandler(ar);
-    super.clusteredVertx(options, asyncResult -> {
-      if (asyncResult.succeeded()) {
-        future.complete(asyncResult.result());
-      } else {
-        future.fail(asyncResult.cause());
-      }
-      latch.countDown();
-    });
-    try {
-      assertTrue(latch.await(2, TimeUnit.MINUTES));
-    } catch (InterruptedException e) {
-      fail(e.getMessage());
-    }
-  }
-
-  @Override
-  protected ClusterManager getClusterManager() {
-    return new InfinispanClusterManager();
-  }
-
-  @Override
-  protected void closeClustered(List<Vertx> clustered) throws Exception {
-    for (Vertx clusteredVertx : clustered) {
-      VertxInternal vertxInternal = (VertxInternal) clusteredVertx;
       InfinispanClusterManager clusterManager = (InfinispanClusterManager) vertxInternal.getClusterManager();
       EmbeddedCacheManager cacheManager = (EmbeddedCacheManager) clusterManager.getCacheContainer();
       Health health = cacheManager.getHealth();
+
+      SECONDS.sleep(2); // Make sure rebalancing has been triggered
+
       long start = System.currentTimeMillis();
       try {
         while (health.getClusterHealth().getHealthStatus() != HealthStatus.HEALTHY
@@ -102,5 +65,9 @@ public class InfinispanClusteredSharedCounterTest extends ClusteredSharedCounter
       });
       latch.await(2, TimeUnit.MINUTES);
     }
+  }
+
+  private Lifecycle() {
+    // Utility
   }
 }

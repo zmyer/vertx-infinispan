@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package io.vertx.ext.web.sstore;
+package io.vertx.core.shareddata;
 
 import io.vertx.Lifecycle;
 import io.vertx.LoggingTestWatcher;
@@ -24,6 +24,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 import org.junit.Rule;
+import org.junit.Test;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -34,9 +35,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Thomas Segismont
  */
-public class InfinispanClusteredSessionHandlerTest extends ClusteredSessionHandlerTest {
+public class InfinispanClusteredAsynchronousLockTest extends ClusteredAsynchronousLockTest {
 
-  private static final Logger log = LoggerFactory.getLogger(InfinispanClusteredSessionHandlerTest.class);
+  private static final Logger log = LoggerFactory.getLogger(InfinispanClusteredAsynchronousLockTest.class);
 
   @Rule
   public LoggingTestWatcher watchman = new LoggingTestWatcher();
@@ -71,6 +72,18 @@ public class InfinispanClusteredSessionHandlerTest extends ClusteredSessionHandl
   @Override
   protected ClusterManager getClusterManager() {
     return new InfinispanClusterManager();
+  }
+
+  @Override
+  @Test
+  public void testLockReleasedForClosedNode() throws Exception {
+    super.testLockReleasedForClosedNode();
+  }
+
+  @Override
+  @Test
+  public void testLockReleasedForKilledNode() throws Exception {
+    super.testLockReleasedForKilledNode();
   }
 
   @Override
